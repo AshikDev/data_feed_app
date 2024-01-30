@@ -35,7 +35,7 @@ class DataFeedCommandTest extends KernelTestCase
 
     public function testExecute()
     {
-        // execute command with the file path
+        // execute command with a valid file path
         $filePath = 'public/files/feed.xml';
         $this->commandTester->execute(['filepath' => $filePath]);
 
@@ -43,5 +43,17 @@ class DataFeedCommandTest extends KernelTestCase
         $output = $this->commandTester->getDisplay();
         $this->assertStringContainsString('Done', $output);
         $this->assertEquals(0, $this->commandTester->getStatusCode());
+    }
+
+    public function testExecuteFailure()
+    {
+        // execute command with an invalid file path
+        $invalidFilePath = 'public/files/nonexistent.xml';
+        $this->commandTester->execute(['filepath' => $invalidFilePath]);
+
+        // display and match output for failure
+        $output = $this->commandTester->getDisplay();
+        $this->assertStringNotContainsString('Done', $output);
+        $this->assertNotEquals(0, $this->commandTester->getStatusCode());
     }
 }
