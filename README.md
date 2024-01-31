@@ -27,7 +27,7 @@ cd data_feed_app
 composer install
 ```
 
-Execute the following command to launch the MySQL container:
+Execute the following command to launch the **MySQL** container:
 ```bash
 docker compose up -d
 ```
@@ -40,7 +40,7 @@ php bin/console make:migration
 php bin/console doctrine:migrations:migrate
 ```
 
-# Alternative Database Configurations
+## Alternative Database Configurations (optional)
 Configure your database of choice by editing the `.env` file.
 
 ### Alternatively configure MariaDB Credentials in `.env` file
