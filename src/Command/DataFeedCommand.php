@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Entity\CatalogItem;
+use App\Service\DataFeedConfiguration;
 use Exception;
 use SimpleXMLElement;
 use Psr\Log\LoggerInterface;
@@ -20,33 +21,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 class DataFeedCommand extends Command
 {
     protected static $defaultName = 'app:data-feed';
-    private static array $propertyMap = [
-        'entity_id' => ['setter' => 'setEntityId', 'type' => 'int'],
-        'CategoryName' => ['setter' => 'setCategoryName', 'type' => 'string'],
-        'sku' => ['setter' => 'setSku', 'type' => 'string'],
-        'name' => ['setter' => 'setName', 'type' => 'string'],
-        'description' => ['setter' => 'setDescription', 'type' => 'string'],
-        'shortdesc' => ['setter' => 'setShortDesc', 'type' => 'string'],
-        'price' => ['setter' => 'setPrice', 'type' => 'string'],
-        'link' => ['setter' => 'setLink', 'type' => 'string'],
-        'image' => ['setter' => 'setImage', 'type' => 'string'],
-        'Brand' => ['setter' => 'setBrand', 'type' => 'string'],
-        'Rating' => ['setter' => 'setRating', 'type' => 'int'],
-        'CaffeineType' => ['setter' => 'setCaffeineType', 'type' => 'string'],
-        'Count' => ['setter' => 'setCount', 'type' => 'int'],
-        'Flavored' => ['setter' => 'setFlavored', 'type' => 'string'],
-        'Seasonal' => ['setter' => 'setSeasonal', 'type' => 'string'],
-        'Instock' => ['setter' => 'setInStock', 'type' => 'string'],
-        'Facebook' => ['setter' => 'setFacebook', 'type' => 'string'],
-        'IsKCup' => ['setter' => 'setIsKCup', 'type' => 'int']
-    ];
-    private static array $requiredFields = [
-        'entity_id' => 'Entity ID',
-        'CategoryName' => 'Category name',
-        'sku' => 'Sku name',
-        'name' => 'Name',
-        'price' => 'Price'
-    ];
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -55,6 +29,9 @@ class DataFeedCommand extends Command
         parent::__construct(self::$defaultName);
     }
 
+    /**
+     * Configures the command with a description and required argument
+     */
     protected function configure(): void
     {
         $this
@@ -62,6 +39,9 @@ class DataFeedCommand extends Command
             ->addArgument('filepath', InputArgument::REQUIRED, 'The path to the XML file.');
     }
 
+    /**
+     * Executes the command to process an XML file and push data to the database
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
@@ -69,15 +49,15 @@ class DataFeedCommand extends Command
 
         $io->info('Processing XML file');
         $filepath = $input->getArgument('filepath');
-        if (!$this->isValidFile($filepath)) {
+        if (!$this->validateXmlFile($filepath)) {
             return Command::FAILURE;
         }
 
         $io->info('Reading XML Data');
-        $elements = $this->getElements($filepath);
+        $elements = $this->extractXMLElements($filepath);
 
         $io->info('Feeding XML Data');
-        if (!$this->feedElements($elements)) {
+        if (!$this->storeXMLData($elements)) {
             return Command::FAILURE;
         }
 
@@ -85,15 +65,16 @@ class DataFeedCommand extends Command
         return Command::SUCCESS;
     }
 
-    private function isValidFile(string $filepath): bool
+    /**
+     * Validates the given file path and extension for XML processing
+     */
+    private function validateXmlFile(string $filepath): bool
     {
-        // validate file path
         if (!file_exists($filepath)) {
             $this->logger->error('File not found at ' . $filepath);
             return false;
         }
 
-        // validate file extension
         $ext = pathinfo($filepath, PATHINFO_EXTENSION);
         if (strtolower($ext) !== 'xml') {
             $this->logger->error('Extension is not Valid. Extension should be xml, given ' . $ext);
@@ -103,10 +84,12 @@ class DataFeedCommand extends Command
         return true;
     }
 
-    private function getElements(string $filepath): ?SimpleXMLElement
+    /**
+     * Responsible for extracting/fetching the data from the XML file
+     */
+    private function extractXMLElements(string $filepath): ?SimpleXMLElement
     {
         try {
-            // get XML data
             $xmlContent = file_get_contents($filepath);
             $xml = new SimpleXMLElement($xmlContent);
         } catch (Exception $e) {
@@ -117,42 +100,58 @@ class DataFeedCommand extends Command
         return $xml->children();
     }
 
-    private function feedElements(?SimpleXMLElement $elements): bool
+    /**
+     * Processes a collection of XML elements, validates, and store them to the database
+     */
+    private function storeXMLData(?SimpleXMLElement $elements): bool
     {
         if ($elements === null) {
             $this->logger->error("The XML file is not accessible.");
             return false;
         }
 
-        // process XML data
+        $batchSize = 100;
+        $processedCount = 0;
         $catalogItemRepository = $this->entityManager->getRepository(CatalogItem::class);
         foreach ($elements as $element) {
-            if (!$this->validateElements($element)) {
+            if (!$this->validateXMLDataFields($element)) {
                 continue;
             }
 
             try {
                 $catalogItem = $catalogItemRepository
                     ->findOneBy(['entity_id' => $element->entity_id]) ?: new CatalogItem();
-                $catalogItemEntity = $this->setPropertiesByXMLData($catalogItem, $element);
+                $catalogItemEntity = $this->assignPropertiesFromXML($catalogItem, $element);
                 $this->entityManager->persist($catalogItemEntity);
+
+                // batch size adjusted for better performance with large data; this code block is optional
+                if (++$processedCount % $batchSize === 0) {
+                    $this->entityManager->flush();
+                    $this->entityManager->clear();
+                }
             } catch (Exception $e) {
                 $this->logger->error($e->getMessage());
             }
         }
 
-        // flush all the data to the catalog_item table
         $this->entityManager->flush();
+        $this->entityManager->clear();
         return true;
     }
 
-    private function validateElements(SimpleXMLElement $element): bool
+    /**
+     * Validates XML data using the specified requiredFields array in DataFeedConfiguration
+     */
+    private function validateXMLDataFields(SimpleXMLElement $element): bool
     {
         try {
-            // validate XML data based on defined requiredFields array
-            foreach (self::$requiredFields as $field => $fieldName) {
+            foreach (DataFeedConfiguration::$requiredFields as $field => $fieldName) {
                 if (!isset($element->$field) || empty(strval($element->$field))) {
-                    $this->logger->error("Entity Id: " . intval($element->entity_id) . ". $fieldName is required.");
+                    $this->logger->error(sprintf(
+                        "Entity Id: %d. %s is required.",
+                        intval($element->entity_id),
+                        $fieldName
+                    ));
                     return false;
                 }
             }
@@ -164,16 +163,18 @@ class DataFeedCommand extends Command
         return true;
     }
 
-    private function setPropertiesByXMLData(CatalogItem $catalogItem, SimpleXMLElement $element): CatalogItem
+    /**
+     * Assigns properties according to the map specified in DataFeedConfiguration
+     */
+    private function assignPropertiesFromXML(CatalogItem $catalogItem, SimpleXMLElement $element): CatalogItem
     {
-        // set properties based on map
-        foreach (self::$propertyMap as $xmlField => $info) {
+        foreach (DataFeedConfiguration::$xmlDataPropertyMap as $xmlField => $info) {
             if (isset($element->$xmlField)) {
                 $value = $element->$xmlField;
                 $value = match ($info['type']) {
-                    'int' => intval($value),
-                    'decimal' => number_format((float)$value, 2, '.', ''),
-                    default => strval($value)
+                    'int' => intval($value) ?? 0,
+                    'decimal' => number_format((float)$value, 2, '.', '') ?? 0.00,
+                    default => strval($value) ?? ''
                 };
                 $catalogItem->{$info['setter']}($value);
             }

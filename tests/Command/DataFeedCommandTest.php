@@ -13,45 +13,54 @@ class DataFeedCommandTest extends KernelTestCase
 {
     private CommandTester $commandTester;
 
+    /**
+     * Creates the DataFeed command and set up the CommandTester for testing
+     */
     protected function setUp(): void
     {
-        // init kernel and container in order to provide the dependencies
+        // sets up the kernel and container to provide necessary dependencies
         $kernel = static::bootKernel();
         $container = static::getContainer();
 
-        // load dependencies from the container to pass in the constructor of the application
+        // fetches and injects dependencies for the constructor from the container
         $entityManager = $container->get(EntityManagerInterface::class);
         $logger = $container->get(LoggerInterface::class);
 
-        // create the application with the required parameters of the constructors
+        // instantiates the application using constructor's required parameters
         $application = new Application($kernel);
         $dataFeedCommand = new DataFeedCommand($entityManager, $logger);
         $application->add($dataFeedCommand);
 
-        // create the command
+        // initializes the command
         $command = $application->find('DataFeed');
         $this->commandTester = new CommandTester($command);
     }
 
+    /**
+     * Tests the successful execution by providing a valid file path
+     */
     public function testExecute()
     {
-        // execute command with a valid file path
+        // executes command with a valid file path
         $filePath = 'public/files/feed.xml';
         $this->commandTester->execute(['filepath' => $filePath]);
 
-        // display and match output
+        // shows and verifies output in terms of success
         $output = $this->commandTester->getDisplay();
         $this->assertStringContainsString('Done', $output);
         $this->assertEquals(0, $this->commandTester->getStatusCode());
     }
 
+    /**
+     * Tests the failure execution by providing an invalid file path
+     */
     public function testExecuteFailure()
     {
         // execute command with an invalid file path
         $invalidFilePath = 'public/files/nonexistent.xml';
         $this->commandTester->execute(['filepath' => $invalidFilePath]);
 
-        // display and match output for failure
+        // shows and verifies output in terms of a failure
         $output = $this->commandTester->getDisplay();
         $this->assertStringNotContainsString('Done', $output);
         $this->assertNotEquals(0, $this->commandTester->getStatusCode());

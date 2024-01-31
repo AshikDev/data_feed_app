@@ -8,7 +8,7 @@ This application is designed to process XML data feeds and store the processed d
 - Validation of data and files
 - Flexible mapping of XML fields to database columns
   - Insertion of data into a database
-  - Updating existing data (based on entity_id)
+  - Updates data if already exists (based on entity_id)
   - Efficient handling of large data feeds
 - Keeps error log
 - Ability to conduct PHP unit tests for comprehensive testing of the application
@@ -149,3 +149,7 @@ I've completed my tasks on the specified files and am providing the path for you
 #### Repository
 
 `src/Repository/CatalogItemRepository.php`
+
+#### DataFeed Static Configurations (Property Maps, Required Fields)
+
+`src/Service/DataFeedConfiguration.php`
