@@ -27,20 +27,21 @@ cd data_feed_app
 composer install
 ```
 
-# Configuration
-Configure your database of choice by editing the `.env` file. 
-
-### Configure MySQL Credentials in `.env` file (Default)
-Remove the comment mark from the line below:
-```bash
-# .env
-DATABASE_URL="mysql://$MYSQL_USER:$MYSQL_PASSWORD@$MYSQL_HOST:$MYSQL_PORT/$DATABASE_NAME?serverVersion=$MYSQL_VERSION&charset=utf8mb4"
-```
-
 Execute the following command to launch the MySQL container:
 ```bash
 docker compose up -d
 ```
+
+Execute the following commands to perform the database migration:
+```bash
+php bin/console make:migration
+```
+```bash
+php bin/console doctrine:migrations:migrate
+```
+
+# Alternative Database Configurations
+Configure your database of choice by editing the `.env` file.
 
 ### Alternatively configure MariaDB Credentials in `.env` file
 Remove the comment mark from the line below:
@@ -52,6 +53,14 @@ DATABASE_URL="mysql://$MYSQL_USER:$MYSQL_PASSWORD@$MYSQL_HOST:$MYSQL_PORT/$DATAB
 Execute the following command to launch the MariaDB container:
 ```bash
 docker compose -f docker-compose-mariadb.yaml up -d
+```
+
+Execute the following commands to perform the database migration:
+```bash
+php bin/console make:migration
+```
+```bash
+php bin/console doctrine:migrations:migrate
 ```
 
 ### Alternatively configure PostgreSQL Credentials in `.env` file
@@ -66,6 +75,14 @@ Execute the following command to launch the PostgreSQL container:
 docker compose -f docker-compose-postgresql.yaml up -d
 ```
 
+Execute the following commands to perform the database migration:
+```bash
+php bin/console make:migration
+```
+```bash
+php bin/console doctrine:migrations:migrate
+```
+
 ### Alternatively configure SQLite Credentials in `.env` file
 Remove the comment mark from the line below:
 ```bash
@@ -73,9 +90,7 @@ Remove the comment mark from the line below:
 DATABASE_URL="sqlite:///%kernel.project_dir%/var/sqlite/data_feed.db"
 ```
 
-## Database Migration
 Execute the following commands to perform the database migration:
-
 ```bash
 php bin/console make:migration
 ```
@@ -181,7 +196,7 @@ I've completed my tasks on the specified files and am providing the path for you
 
 # NOTE
 
-If the necessary environment isn't set up, use Docker to run the console app. The provided Dockerfile should be incorporated as a service in a YAML file of your choosing. After adding this, execute the command `docker compose up -d` to start the service. e.g.
+**Alternatively:** If the necessary environment isn't set up, use Docker to run the console app. The provided Dockerfile should be incorporated as a service in a YAML file of your choosing. After adding this, execute the command `docker compose up -d` to start the service. e.g.
 
 ```bash
 services:
