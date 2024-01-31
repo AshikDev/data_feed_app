@@ -12,7 +12,7 @@ services:
     ports:
       - "${MYSQL_PORT}:${MYSQL_PORT}"
     volumes:
-      - mysql-data:/var/lib/${DATABASE_TYPE}
+      - mysql-data:/var/lib/mysql
 
 volumes:
   mysql-data:

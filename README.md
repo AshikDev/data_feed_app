@@ -178,3 +178,17 @@ I've completed my tasks on the specified files and am providing the path for you
 #### SQLite Path (if you want to use)
 
 `var/sqlite/data_feed.db`
+
+# NOTE
+
+If the necessary environment isn't set up, use Docker to run the console app. The provided Dockerfile should be incorporated as a service in a YAML file of your choosing. After adding this, execute the command `docker compose up -d` to start the service. e.g.
+
+```bash
+services:
+  data_feed_app:
+    build: .
+    volumes:
+      - .:/app
+    depends_on:
+      - mysql
+```
