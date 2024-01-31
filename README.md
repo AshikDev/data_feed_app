@@ -30,7 +30,7 @@ composer install
 # Configuration
 Configure your database of choice by editing the `.env` file. 
 
-### Configure MySQL Credentials in .env file (Default)
+### Configure MySQL Credentials in `.env` file (Default)
 Remove the comment mark from the line below:
 ```bash
 # .env
@@ -126,6 +126,27 @@ To test the application for a failure scenario, run the following command:
 php bin/phpunit --filter testExecuteFailure tests/Command/DataFeedCommandTest.php
 ```
 
+# Expected Output
+
+Console output should show 3446 rows saved out of 3449 from the specified XML file, as three rows lack required criteria based on my database design. The output is provided below:
+
+`[INFO] Processing XML file`
+
+`[INFO] Reading XML Data`
+
+`[INFO] Storing XML Data`
+
+`20:51:34 ERROR     [app] Entity Id: 4450. Price is required.`
+
+`20:51:34 ERROR     [app] Entity Id: 4458. Name is required.`
+
+`20:51:35 ERROR     [app] Entity Id: 5124. Name is required.`
+
+`[INFO] 3446 rows are saved`
+
+`[OK] Done`
+
+
 # File Navigation:
 
 I've completed my tasks on the specified files and am providing the path for your review.
@@ -153,3 +174,7 @@ I've completed my tasks on the specified files and am providing the path for you
 #### DataFeed Static Configurations (Property Maps, Required Fields)
 
 `src/Service/DataFeedConfiguration.php`
+
+#### SQLite Path (if you want to use)
+
+`var/sqlite/data_feed.db`

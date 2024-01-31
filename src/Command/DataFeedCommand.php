@@ -56,11 +56,13 @@ class DataFeedCommand extends Command
         $io->info('Reading XML Data');
         $elements = $this->extractXMLElements($filepath);
 
-        $io->info('Feeding XML Data');
-        if (!$this->storeXMLData($elements)) {
+        $io->info('Storing XML Data');
+        if (($rows = $this->storeXMLData($elements)) < 0) {
+            $io->error('No data is saved');
             return Command::FAILURE;
         }
 
+        $io->info($rows . ' rows are saved');
         $io->success('Done');
         return Command::SUCCESS;
     }
@@ -103,11 +105,11 @@ class DataFeedCommand extends Command
     /**
      * Processes a collection of XML elements, validates, and store them to the database
      */
-    private function storeXMLData(?SimpleXMLElement $elements): bool
+    private function storeXMLData(?SimpleXMLElement $elements): int
     {
         if ($elements === null) {
             $this->logger->error("The XML file is not accessible.");
-            return false;
+            return 0;
         }
 
         $batchSize = 100;
@@ -136,7 +138,7 @@ class DataFeedCommand extends Command
 
         $this->entityManager->flush();
         $this->entityManager->clear();
-        return true;
+        return $processedCount;
     }
 
     /**
